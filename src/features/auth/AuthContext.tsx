@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import type { Profile } from '../../lib/types'
 import { getUserMessage } from '../../lib/errors'
@@ -23,6 +23,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const sessionRef = useRef<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [assuranceLevel, setAssuranceLevel] = useState<string | null>(null)
@@ -45,7 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async (nextSession?: Session | null) => {
     const client = supabase
-    const activeSession = nextSession === undefined ? session : nextSession
+    const activeSession = nextSession === undefined ? sessionRef.current : nextSession
+    sessionRef.current = activeSession ?? null
     setSession(activeSession ?? null)
     setAuthNotice(null)
 
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: assurance, error: assuranceError } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
     setAssuranceLevel(assuranceError ? null : assurance.currentLevel)
     setLoading(false)
-  }, [session])
+  }, [])
 
   useEffect(() => {
     const client = supabase
@@ -130,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const client = requireSupabase()
     const { error } = await client.auth.signOut({ scope: 'local' })
     if (error) throw error
+    sessionRef.current = null
     setSession(null)
     setProfile(null)
     setAssuranceLevel(null)
