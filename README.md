@@ -143,7 +143,14 @@ This repository is configured as a static Vite app. `vercel.json` rewrites neste
 
 1. Push/host this code in the intended GitHub repository, then import that repository in Vercel.
 2. Select Vite or configure **Build Command** `npm run build`, **Output Directory** `dist`, and Node.js 22.12+.
-3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to Vercel Production and only the intended Preview environments. These two values are public; do not add any service/secret key.
+3. Add these environment variables to Vercel Production and the intended Preview environments:
+
+   ```dotenv
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
+   ```
+
+   Use the Supabase project root URL, not the `/rest/v1/` URL. These two browser-safe values are public; never add a service-role or secret key to Vercel frontend variables.
 4. Deploy the frontend. In Supabase Auth, set the Site URL to the production origin and add exact redirect patterns for localhost, the stable Preview host you actually use, the Vercel production hostname, and any verified custom domain.
 5. Set `CHECKTRACK_SITE_URL` and `CHECKTRACK_ALLOWED_ORIGINS` as Supabase Edge Function secrets to the production origin(s); redeploy the functions after changing code. Do not allow untrusted origins. Function CORS compares exact origins.
 6. Verify sign-in, password reset, invitation links, MFA, record RLS, status history, CSV permissions, and deep-link refresh on a non-production test account before inviting real users.
