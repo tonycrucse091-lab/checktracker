@@ -1,0 +1,17 @@
+project_id = "checktrack"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+
+[functions.team-admin]
+verify_jwt = true
+
+[functions.export-records]
+verify_jwt = true

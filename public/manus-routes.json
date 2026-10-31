@@ -1,0 +1,18 @@
+{
+  "routes": [
+    { "path": "/", "title": "Home" },
+    { "path": "/sign-in", "title": "Sign in" },
+    { "path": "/password-reset", "title": "Password reset" },
+    { "path": "/set-password", "title": "Set password" },
+    { "path": "/access-denied", "title": "Access denied" },
+    { "path": "/mfa", "title": "Administrator verification" },
+    { "path": "/app", "title": "Dashboard" },
+    { "path": "/app/records", "title": "Check records" },
+    { "path": "/app/records/new", "title": "Create record" },
+    { "path": "/app/records/:recordId", "title": "Record detail" },
+    { "path": "/app/records/:recordId/edit", "title": "Edit record" },
+    { "path": "/app/reports", "title": "Reports and exports" },
+    { "path": "/app/users", "title": "Team access" },
+    { "path": "/app/audit", "title": "Audit history" }
+  ]
+}
