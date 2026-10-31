@@ -251,16 +251,28 @@ export function MfaPage() {
       return
     }
     let alive = true
-    void client.auth.mfa.listFactors().then(({ data, error: factorError }) => {
-      if (!alive) return
-      if (factorError) setError(getUserMessage(factorError))
-      const verified = data?.totp.find((factor) => factor.status === 'verified')
-      if (verified) {
-        setFactorId(verified.id)
-        setFactorName(verified.friendly_name || 'Authenticator')
-      }
-      setLoading(false)
-    })
+    void client.auth.mfa.listFactors()
+      .then(({ data, error: factorError }) => {
+        if (!alive) return
+        if (factorError) {
+          setError(getUserMessage(factorError))
+          return
+        }
+        const verified = data?.totp.find((factor) => factor.status === 'verified')
+        if (verified) {
+          setFactorId(verified.id)
+          setFactorName(verified.friendly_name || 'Authenticator')
+        }
+      })
+      .catch((caught) => {
+        if (alive) {
+          setError(getUserMessage(caught))
+          logSafeFailure('administrator MFA factor lookup', caught)
+        }
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
     return () => { alive = false }
   }, [profile, assuranceLevel, navigate, location.state])
 

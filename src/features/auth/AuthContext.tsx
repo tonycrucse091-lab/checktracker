@@ -24,6 +24,9 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const sessionRef = useRef<Session | null>(null)
+  const profileRef = useRef<Profile | null>(null)
+  const loadedSessionUserIdRef = useRef<string | null>(null)
+  const profileRequestIdRef = useRef(0)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [assuranceLevel, setAssuranceLevel] = useState<string | null>(null)
@@ -47,17 +50,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async (nextSession?: Session | null) => {
     const client = supabase
     const activeSession = nextSession === undefined ? sessionRef.current : nextSession
+    const requestId = ++profileRequestIdRef.current
+    const activeUserId = activeSession?.user.id ?? null
     sessionRef.current = activeSession ?? null
     setSession(activeSession ?? null)
     setAuthNotice(null)
 
     if (!client || !activeSession) {
+      loadedSessionUserIdRef.current = null
+      profileRef.current = null
       setProfile(null)
       setAssuranceLevel(null)
       setLoading(false)
       return
     }
 
+    // Supabase can emit INITIAL_SESSION and SIGNED_IN for the same browser session.
+    // Do not restart the profile load or make the UI bounce between auth gates.
+    if (loadedSessionUserIdRef.current === activeUserId && profileRef.current) {
+      setLoading(false)
+      return
+    }
+
+    profileRef.current = null
+    loadedSessionUserIdRef.current = null
+    setProfile(null)
     setLoading(true)
     const { data, error } = await client
       .from('profiles')
@@ -65,7 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('user_id', activeSession.user.id)
       .maybeSingle()
 
+    if (requestId !== profileRequestIdRef.current) return
+
     if (error) {
+      profileRef.current = null
       setProfile(null)
       setAuthNotice(getUserMessage(error))
       setLoading(false)
@@ -74,8 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const nextProfile = data as Profile | null
     if (!nextProfile || nextProfile.account_status !== 'active') {
+      profileRef.current = null
+      loadedSessionUserIdRef.current = null
       setProfile(null)
       setSession(null)
+      sessionRef.current = null
       setAuthNotice('This account is not active. Contact your administrator for access.')
       setLoading(false)
       // Revoke this browser session locally. RLS still blocks suspended accounts independently.
@@ -83,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    profileRef.current = nextProfile
+    loadedSessionUserIdRef.current = activeUserId
     setProfile(nextProfile)
     const { data: assurance, error: assuranceError } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
     setAssuranceLevel(assuranceError ? null : assurance.currentLevel)
@@ -132,7 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const client = requireSupabase()
     const { error } = await client.auth.signOut({ scope: 'local' })
     if (error) throw error
+    profileRequestIdRef.current += 1
     sessionRef.current = null
+    profileRef.current = null
+    loadedSessionUserIdRef.current = null
     setSession(null)
     setProfile(null)
     setAssuranceLevel(null)
