@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Activity, ArrowRight, Clock3, FileCheck2, FilePlus2, RotateCcw, Search, ShieldAlert, Timer, WalletCards } from 'lucide-react'
+import { Activity, ArrowRight, Clock3, FileCheck2, FilePlus2, MapPin, PackageSearch, RotateCcw, Search, ShieldAlert, Timer, WalletCards } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '../layout/AppShell'
 import { useAuth } from '../auth/AuthContext'
-import { fetchDashboardSummary } from '../../lib/records'
-import type { DashboardSummary } from '../../lib/types'
+import { fetchDashboardSummary, fetchTrackingRecord } from '../../lib/records'
+import type { CheckRecord, DashboardSummary } from '../../lib/types'
 import { formatCurrency, formatDate, formatDateTime, statusLabels } from '../../lib/format'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { EmptyState, LoadError, PageLoading } from '../../components/ui/States'
@@ -35,6 +35,10 @@ export default function DashboardPage() {
   const [quickStatus, setQuickStatus] = useState<CheckStatus | 'all'>('all')
   const [quickFromDate, setQuickFromDate] = useState('')
   const [quickToDate, setQuickToDate] = useState('')
+  const [trackingCode, setTrackingCode] = useState('')
+  const [trackedRecord, setTrackedRecord] = useState<CheckRecord | null>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+  const [trackingError, setTrackingError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -62,6 +66,29 @@ export default function DashboardPage() {
     navigate(`/app/records${params.size ? `?${params.toString()}` : ''}`)
   }
 
+  async function trackCheck(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const reference = trackingCode.trim()
+    if (!reference) {
+      setTrackedRecord(null)
+      setTrackingError('Enter the tracking code provided by your administrator.')
+      return
+    }
+    setTrackingLoading(true)
+    setTrackingError('')
+    try {
+      const record = await fetchTrackingRecord(reference)
+      setTrackedRecord(record)
+      if (!record) setTrackingError('No active check was found for that tracking code. Check the code and try again.')
+    } catch (caught) {
+      logSafeFailure('tracking lookup', caught)
+      setTrackedRecord(null)
+      setTrackingError('The tracking lookup could not be completed. Try again shortly.')
+    } finally {
+      setTrackingLoading(false)
+    }
+  }
+
   const canWrite = profile?.role === 'administrator' || profile?.role === 'staff'
   const stats = [
     { label: 'Total active records', value: summary?.total ?? null, note: 'Current database total', icon: WalletCards },
@@ -86,6 +113,33 @@ export default function DashboardPage() {
       />
 
       {error && <div style={{ marginBottom: 16 }}><LoadError error={error} onRetry={() => setRefreshKey((value) => value + 1)} label="Live database totals are temporarily unavailable." /></div>}
+
+      <section className="surface-card tracking-card" aria-labelledby="track-check-heading">
+        <div className="tracking-card-copy">
+          <span className="stat-icon"><PackageSearch aria-hidden="true" /></span>
+          <div>
+            <p className="eyebrow">Check tracking</p>
+            <h2 id="track-check-heading">Where is your check?</h2>
+            <p>Enter the tracking code provided by your administrator to view its latest recorded status and transit location.</p>
+          </div>
+        </div>
+        <form className="tracking-form" onSubmit={(event) => void trackCheck(event)}>
+          <label className="field">
+            <span className="field-label">Tracking code</span>
+            <input className="field-input" value={trackingCode} onChange={(event) => setTrackingCode(event.target.value)} placeholder="Enter tracking code" aria-label="Tracking code" autoComplete="off" />
+          </label>
+          <Button type="submit" disabled={trackingLoading}>{trackingLoading ? 'Looking up…' : 'Track check'}</Button>
+        </form>
+        {trackingError && <p className="tracking-message tracking-message-error" role="alert">{trackingError}</p>}
+        {trackedRecord && <div className="tracking-result" role="status">
+          <div className="tracking-result-topline">
+            <div><span className="field-label">Tracking {trackedRecord.tracking_reference}</span><p className="tracking-result-title">Latest recorded movement</p></div>
+            <StatusBadge status={trackedRecord.status} />
+          </div>
+          <div className="tracking-location"><MapPin aria-hidden="true" /><div><span className="field-label">Current location</span><strong>{trackedRecord.current_location || 'Location update pending'}</strong><span className="field-hint">{trackedRecord.location_updated_at ? `Updated ${formatDateTime(trackedRecord.location_updated_at)}` : 'Your administrator has not posted a transit location yet.'}</span></div></div>
+          <div className="tracking-meta"><span>Issued {formatDate(trackedRecord.issue_date)}</span><span>Expected {formatDate(trackedRecord.expected_processing_date)}</span></div>
+        </div>}
+      </section>
 
       <section className="stats-grid" aria-label="Record totals" aria-busy={loading}>
         {stats.map((item) => <StatCard key={item.label} {...item} />)}

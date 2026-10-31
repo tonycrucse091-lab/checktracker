@@ -32,6 +32,8 @@ export interface CheckRecord {
   notes: string | null
   verification_source: string | null
   verification_timestamp: string | null
+  current_location?: string | null
+  location_updated_at?: string | null
   created_by: string
   created_at: string
   updated_by: string | null
