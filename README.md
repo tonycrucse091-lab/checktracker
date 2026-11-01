@@ -56,7 +56,15 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
 
 ## Supabase authentication and the first administrator
 
-1. In Supabase Auth settings, enable email sign-up for the public read-only onboarding flow, keep email confirmations enabled, configure an SMTP provider for production email, set the production Site URL, and add only the required local, Preview, and production redirect URLs. Password reset redirects to `/set-password`; invitations also return there.
+1. In Supabase Auth settings, enable email sign-up for the public read-only onboarding flow and keep email confirmations enabled. Set the **Site URL** to the complete URL including the protocol, for example `https://checktracker.vercel.app` (not `checktracker.vercel.app/`, which Supabase treats as a path). Add these **Redirect URLs**:
+
+   ```text
+   http://localhost:3000/**
+   https://3000-ikfwdyftwza3twk787kpq-574c746f.us3.manus.computer/**
+   https://checktracker.vercel.app/**
+   ```
+
+   Configure an SMTP provider for production email and set the production Site URL before inviting real users. Password reset redirects to `/set-password`; email confirmation redirects to `/sign-in` on the same origin where signup started.
 2. Apply the versioned migrations to the intended Supabase project after checking its project reference and taking the backup required by your organization:
 
    ```bash
