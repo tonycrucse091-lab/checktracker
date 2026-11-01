@@ -22,6 +22,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function isRetryableAuthError(error: unknown): boolean {
+  const candidate = (error && typeof error === 'object' ? error : {}) as { name?: string; message?: string }
+  const text = `${candidate.name ?? ''} ${candidate.message ?? ''}`.toLowerCase()
+  return text.includes('retryablefetch') || text.includes('network') || text.includes('timed out') || text.includes('connection closed')
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const sessionRef = useRef<Session | null>(null)
@@ -162,9 +168,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const client = requireSupabase()
-    const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
-    if (error) throw error
-    await refreshProfile(data.session)
+    let activeSession: Session | null = null
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+        if (error) throw error
+        activeSession = data.session
+        break
+      } catch (caught) {
+        if (attempt === 1 || !isRetryableAuthError(caught)) throw caught
+        await new Promise((resolve) => window.setTimeout(resolve, 800))
+      }
+    }
+    await refreshProfile(activeSession)
+    if (!profileRef.current) {
+      throw new Error('Your email and password were accepted, but your CheckTrack profile is not provisioned yet. Apply the latest Supabase migrations, then try again.')
+    }
   }, [refreshProfile])
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
