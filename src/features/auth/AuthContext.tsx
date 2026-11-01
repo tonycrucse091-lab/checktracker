@@ -165,6 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
     if (error) throw error
     await refreshProfile(data.session)
+    if (!profileRef.current) {
+      throw new Error('Your email and password were accepted, but your CheckTrack profile is not provisioned yet. Apply the latest Supabase migrations, then try again.')
+    }
   }, [refreshProfile])
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
