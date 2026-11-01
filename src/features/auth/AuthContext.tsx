@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const requestPasswordReset = useCallback(async (email: string) => {
     const client = requireSupabase()
     const { error } = await client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}/set-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Fset-password`,
     })
     if (error) throw error
   }, [])

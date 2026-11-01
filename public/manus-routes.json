@@ -2,6 +2,7 @@
   "routes": [
     { "path": "/", "title": "Home" },
     { "path": "/sign-in", "title": "Sign in" },
+    { "path": "/auth/callback", "title": "Email confirmation" },
     { "path": "/password-reset", "title": "Password reset" },
     { "path": "/set-password", "title": "Set password" },
     { "path": "/access-denied", "title": "Access denied" },

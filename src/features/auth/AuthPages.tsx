@@ -111,6 +111,41 @@ export function SignInPage() {
   )
 }
 
+export function AuthCallbackPage() {
+  const { session, loading, configured, authNotice } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [error, setError] = useState('')
+
+  const nextPath = (() => {
+    const requested = new URLSearchParams(location.search).get('next')
+    return requested === '/set-password' ? '/set-password' : '/app'
+  })()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const callbackError = params.get('error_description') || params.get('error')
+    if (callbackError) setError(callbackError.replace(/\+/g, ' '))
+  }, [location.search])
+
+  useEffect(() => {
+    if (!loading && session && !error) navigate(nextPath, { replace: true })
+  }, [error, loading, navigate, nextPath, session])
+
+  return (
+    <AuthLayout>
+      <p className="eyebrow">Secure account setup</p>
+      <h2>{error ? 'Email confirmation could not be completed' : 'Confirming your email…'}</h2>
+      <p>{error ? 'The confirmation link may have expired or already been used. Request a new invitation or password link and open it in the same browser.' : 'Please wait while CheckTrack verifies your email and restores your secure session.'}</p>
+      {!configured && <div className="alert alert-error" role="alert">Supabase is not configured for this deployment.</div>}
+      {authNotice && <div className="alert alert-error" role="alert">{authNotice}</div>}
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      {!error && configured && <div className="alert" role="status">Checking your confirmation link…</div>}
+      <p className="auth-footnote"><Link className="auth-subtle-link" to="/sign-in">Return to sign in</Link></p>
+    </AuthLayout>
+  )
+}
+
 export function PasswordResetPage() {
   const { requestPasswordReset, configured } = useAuth()
   const [email, setEmail] = useState('')

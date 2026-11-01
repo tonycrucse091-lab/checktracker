@@ -6,6 +6,7 @@ import { PageLoading } from './components/ui/States'
 import type { UserRole } from './lib/types'
 
 const SignInPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SignInPage })))
+const AuthCallbackPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.AuthCallbackPage })))
 const PasswordResetPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.PasswordResetPage })))
 const SetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SetPasswordPage })))
 const MfaPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.MfaPage })))
@@ -81,6 +82,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/app" replace />} />
         <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/password-reset" element={<PasswordResetPage />} />
         <Route path="/set-password" element={<SetPasswordPage />} />
         <Route path="/access-denied" element={<AccessDeniedPage />} />

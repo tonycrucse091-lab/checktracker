@@ -98,7 +98,9 @@ async function inviteMember(actor: ActorContext, body: Record<string, unknown>):
   try {
     const parsed = new URL(siteUrl)
     if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') throw new Error('Not HTTPS')
-    redirectTo = new URL('/set-password', parsed).toString()
+    const callback = new URL('/auth/callback', parsed)
+    callback.searchParams.set('next', '/set-password')
+    redirectTo = callback.toString()
   } catch {
     throw new HttpError(503, 'The configured CheckTrack site URL is invalid.')
   }
