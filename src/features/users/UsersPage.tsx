@@ -110,17 +110,32 @@ export default function UsersPage() {
     } finally { setSavingId('') }
   }
 
+  async function deactivateMember(member: TeamMember) {
+    if (member.user_id === profile?.user_id || member.account_status === 'disabled') return
+    const confirmed = window.confirm(`Deactivate ${member.display_name || member.email}? This keeps the audit history but blocks future access.`)
+    if (!confirmed) return
+    setSavingId(member.user_id)
+    try {
+      await updateTeamMember({ user_id: member.user_id, role: member.role, account_status: 'disabled', can_export_records: false })
+      toast.success(`${member.display_name || member.email} was deactivated.`)
+      setRefreshKey((value) => value + 1)
+    } catch (caught) {
+      logSafeFailure('user deactivation', caught)
+      toast.error(getUserMessage(caught))
+    } finally { setSavingId('') }
+  }
+
   if (profile?.role !== 'administrator') return <EmptyState title="Administrator access required" description="Only an administrator can manage team membership and permissions." />
 
   return (
     <>
-      <PageHeader eyebrow="Administration" title="Team access" description="Invite staff and read-only users, maintain their account status, and explicitly grant Staff export permission." actions={<><Button variant="secondary" type="button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading}><RefreshCw aria-hidden="true" />Refresh</Button><Button type="button" onClick={() => setInviteOpen(true)}><MailPlus aria-hidden="true" />Invite user</Button></>} />
+      <PageHeader eyebrow="Administration" title="Admin user dashboard" description="Create, review, update, and safely deactivate user accounts. Every access change is validated by the administrator-only Edge Function and recorded in the audit history." actions={<><Button variant="secondary" type="button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading}><RefreshCw aria-hidden="true" />Refresh</Button><Button type="button" onClick={() => setInviteOpen(true)}><MailPlus aria-hidden="true" />Create user</Button></>} />
       <div className="alert alert-neutral" style={{ marginBottom: 15 }}><ShieldCheck aria-hidden="true" /><span>Role changes and account deactivation are audited. Administrators require an active AAL2 authenticator. The database prevents self-demotion and removal of the last active administrator.</span></div>
       {error && <div style={{ marginBottom: 15 }}><LoadError error={error} onRetry={() => setRefreshKey((value) => value + 1)} label="Team members could not be loaded." /></div>}
       <section className="surface-card table-card" aria-label="Team members" aria-busy={loading}>
         {loading ? <PageLoading label="Loading team access…" /> : members.length === 0 ? <EmptyState title="No provisioned users" description="Invite the first Staff or Read-only user after the first administrator is securely bootstrapped." icon={<Users aria-hidden="true" />} action={<Button type="button" onClick={() => setInviteOpen(true)}>Invite a user</Button>} /> : (
           <div className="table-scroll"><table className="data-table">
-            <thead><tr><th>User</th><th>Role</th><th>Account status</th><th>Last sign in</th><th>Staff exports</th><th>Save</th></tr></thead>
+            <thead><tr><th>User</th><th>Role</th><th>Account status</th><th>Last sign in</th><th>Staff exports</th><th>Actions</th></tr></thead>
             <tbody>{members.map((member) => {
               const draft = drafts[member.user_id] ?? { role: member.role, account_status: member.account_status, can_export_records: member.can_export_records }
               const changed = draft.role !== member.role || draft.account_status !== member.account_status || draft.can_export_records !== member.can_export_records
@@ -131,7 +146,7 @@ export default function UsersPage() {
                 <td><select className="filter-select" value={draft.account_status} onChange={(event) => patchDraft(member.user_id, { account_status: event.target.value as AccountStatus })} disabled={isSelf || savingId === member.user_id} aria-label={`Account status for ${member.email}`}>{accountStatuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></td>
                 <td>{formatDateTime(member.last_sign_in_at)}</td>
                 <td>{draft.role === 'staff' ? <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={draft.can_export_records} onChange={(event) => patchDraft(member.user_id, { can_export_records: event.target.checked })} disabled={savingId === member.user_id} /><span className="sr-only">Allow exports for {member.email}</span></label> : <span className="field-hint">Not applicable</span>}</td>
-                <td><Button size="small" type="button" onClick={() => void saveMember(member)} disabled={!changed || savingId === member.user_id || (isSelf && (draft.role !== 'administrator' || draft.account_status !== 'active'))}>{savingId === member.user_id ? 'Saving…' : 'Save'}</Button></td>
+                <td><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}><Button size="small" type="button" onClick={() => void saveMember(member)} disabled={!changed || savingId === member.user_id || (isSelf && (draft.role !== 'administrator' || draft.account_status !== 'active'))}>{savingId === member.user_id ? 'Saving…' : 'Save'}</Button><Button size="small" variant="secondary" type="button" onClick={() => void deactivateMember(member)} disabled={isSelf || member.account_status === 'disabled' || savingId === member.user_id}>Deactivate</Button></div></td>
               </tr>
             })}</tbody>
           </table></div>

@@ -8,6 +8,7 @@
     { "path": "/access-denied", "title": "Access denied" },
     { "path": "/mfa", "title": "Administrator verification" },
     { "path": "/app", "title": "Dashboard" },
+    { "path": "/app/admin", "title": "Admin user dashboard" },
     { "path": "/app/records", "title": "Check records" },
     { "path": "/app/records/new", "title": "Create record" },
     { "path": "/app/records/:recordId", "title": "Record detail" },

@@ -126,6 +126,7 @@ export default function App() {
               <Route path="records/:recordId" element={<RecordDetailsPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route element={<RequireRoles roles={['administrator']} />}>
+                <Route path="admin" element={<UsersPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<AuditPage />} />
               </Route>

@@ -21,6 +21,7 @@ const pageNames: Array<{ prefix: string; label: string }> = [
   { prefix: '/app/records/new', label: 'New record' },
   { prefix: '/app/records', label: 'Check records' },
   { prefix: '/app/reports', label: 'Reports & exports' },
+  { prefix: '/app/admin', label: 'Admin dashboard' },
   { prefix: '/app/users', label: 'Team access' },
   { prefix: '/app/audit', label: 'Audit history' },
   { prefix: '/app', label: 'Dashboard' },
@@ -66,6 +67,7 @@ function Sidebar({ onNavigate, open }: { onNavigate: () => void; open: boolean }
         {role === 'administrator' && (
           <nav aria-label="Administration" className="nav-group">
             <p className="nav-caption">Administration</p>
+            <NavLink to="/app/admin" className="nav-link" onClick={onNavigate}><ShieldCheck aria-hidden="true" />Admin dashboard</NavLink>
             <NavLink to="/app/users" className="nav-link" onClick={onNavigate}><Users aria-hidden="true" />Team access</NavLink>
             <NavLink to="/app/audit" className="nav-link" onClick={onNavigate}><FileClock aria-hidden="true" />Audit history</NavLink>
           </nav>
