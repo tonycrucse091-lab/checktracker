@@ -13,6 +13,7 @@ const mockAuth = vi.hoisted(() => ({
     refreshProfile: vi.fn(async () => undefined),
     refreshAssurance: vi.fn(async () => 'aal1'),
     signIn: vi.fn(async () => undefined),
+    signUp: vi.fn(async () => false),
     signOut: vi.fn(async () => undefined),
     requestPasswordReset: vi.fn(async () => undefined),
     updatePassword: vi.fn(async () => undefined),
@@ -39,6 +40,13 @@ describe('protected CheckTrack routes', () => {
   it('redirects an unauthenticated visitor away from protected records', async () => {
     renderRoute('/app/records')
     expect(await screen.findByRole('heading', { name: 'Sign in to CheckTrack' })).toBeInTheDocument()
+  })
+
+  it('shows the public index with sign-in and signup actions', async () => {
+    renderRoute('/')
+    expect(await screen.findByRole('heading', { name: 'Track every check with clarity.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /sign in/i })).toHaveAttribute('href', '/sign-in')
+    expect(screen.getByRole('link', { name: /create an account/i })).toHaveAttribute('href', '/sign-up')
   })
 
   it('denies record creation to a read-only account', async () => {

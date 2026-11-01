@@ -56,7 +56,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
 
 ## Supabase authentication and the first administrator
 
-1. In Supabase Auth settings, keep public sign-up disabled, enable email confirmations, configure an SMTP provider for production email, set the production Site URL, and add only the required local, Preview, and production redirect URLs. Password reset redirects to `/set-password`; invitations also return there.
+1. In Supabase Auth settings, enable email sign-up for the public read-only onboarding flow, keep email confirmations enabled, configure an SMTP provider for production email, set the production Site URL, and add only the required local, Preview, and production redirect URLs. Password reset redirects to `/set-password`; invitations also return there.
 2. Apply the versioned migrations to the intended Supabase project after checking its project reference and taking the backup required by your organization:
 
    ```bash
@@ -96,7 +96,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
 
    This is a trusted database-owner bootstrap; the associated profile audit row can have a null actor. Subsequent app-mediated changes are attributed to the authenticated administrator. Do not leave this placeholder unchanged or expose the SQL editor to ordinary app users.
 5. Sign in as that administrator. CheckTrack requires Supabase TOTP AAL2 before administrator actions are enabled. Enroll an authenticator using `/mfa`; both the app and database enforce the AAL2 requirement.
-6. From **Team access**, invite Staff or Read-only accounts. Administrator access for another user is assigned only by promoting an existing profile. Staff export permission is explicit and off by default.
+6. From **Team access**, invite Staff or Read-only accounts. Administrator access for another user is assigned only by promoting an existing profile. Staff export permission is explicit and off by default. Public signup always creates read-only accounts; the stored profile role, not a signup field, controls the post-login workspace.
 
 ## Supabase Edge Functions
 

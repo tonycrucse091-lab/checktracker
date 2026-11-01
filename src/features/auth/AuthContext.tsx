@@ -14,6 +14,7 @@ interface AuthContextValue {
   refreshProfile: (nextSession?: Session | null) => Promise<void>
   refreshAssurance: () => Promise<string | null>
   signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, displayName: string) => Promise<boolean>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
@@ -166,6 +167,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshProfile(data.session)
   }, [refreshProfile])
 
+  const signUp = useCallback(async (email: string, password: string, displayName: string) => {
+    const client = requireSupabase()
+    const { data, error } = await client.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { data: { display_name: displayName.trim() } },
+    })
+    if (error) throw error
+    return Boolean(data.session)
+  }, [])
+
   const signOut = useCallback(async () => {
     const client = requireSupabase()
     const { error } = await client.auth.signOut({ scope: 'local' })
@@ -203,10 +215,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile,
     refreshAssurance,
     signIn,
+    signUp,
     signOut,
     requestPasswordReset,
     updatePassword,
-  }), [session, profile, loading, assuranceLevel, authNotice, refreshProfile, refreshAssurance, signIn, signOut, requestPasswordReset, updatePassword])
+  }), [session, profile, loading, assuranceLevel, authNotice, refreshProfile, refreshAssurance, signIn, signUp, signOut, requestPasswordReset, updatePassword])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

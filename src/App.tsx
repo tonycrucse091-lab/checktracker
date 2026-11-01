@@ -1,11 +1,12 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Outlet, Route, Routes, useLocation, Link } from 'react-router-dom'
-import { ArrowLeft, LockKeyhole } from 'lucide-react'
+import { ArrowLeft, ArrowRight, LockKeyhole, LogIn, UserRoundPlus } from 'lucide-react'
 import { useAuth } from './features/auth/AuthContext'
 import { PageLoading } from './components/ui/States'
 import type { UserRole } from './lib/types'
 
 const SignInPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SignInPage })))
+const SignUpPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SignUpPage })))
 const PasswordResetPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.PasswordResetPage })))
 const SetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SetPasswordPage })))
 const MfaPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.MfaPage })))
@@ -71,6 +72,27 @@ function NotFoundPage() {
   )
 }
 
+function IndexPage() {
+  const { session, loading } = useAuth()
+  if (loading) return <PageLoading label="Loading CheckTrack…" />
+  if (session) return <Navigate to="/app" replace />
+  return (
+    <main className="index-page">
+      <section className="index-card" aria-labelledby="index-heading">
+        <div className="index-brand"><img src="/favicon.svg" alt="" /><strong>CheckTrack</strong></div>
+        <p className="eyebrow">Controlled record management</p>
+        <h1 id="index-heading">Track every check with clarity.</h1>
+        <p className="index-description">Sign in to follow a check’s recorded status and transit location, or create a read-only account to get started.</p>
+        <div className="index-actions">
+          <Link className="button button-primary" to="/sign-in"><LogIn aria-hidden="true" />Sign in <ArrowRight aria-hidden="true" /></Link>
+          <Link className="button button-secondary" to="/sign-up"><UserRoundPlus aria-hidden="true" />Create an account</Link>
+        </div>
+        <p className="index-note">Your stored CheckTrack profile determines the workspace you can access. Administrator access is never selected from the sign-up form.</p>
+      </section>
+    </main>
+  )
+}
+
 function RequireWriter() {
   return <RequireRoles roles={['administrator', 'staff']} />
 }
@@ -79,8 +101,9 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoading label="Loading CheckTrack…" />}>
       <Routes>
-        <Route path="/" element={<Navigate to="/app" replace />} />
+        <Route path="/" element={<IndexPage />} />
         <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="/password-reset" element={<PasswordResetPage />} />
         <Route path="/set-password" element={<SetPasswordPage />} />
         <Route path="/access-denied" element={<AccessDeniedPage />} />
