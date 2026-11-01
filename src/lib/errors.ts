@@ -8,6 +8,7 @@ type ErrorLike = {
 export function getUserMessage(error: unknown): string {
   const candidate = (error && typeof error === 'object' ? error : {}) as ErrorLike
   const text = `${candidate.message ?? ''} ${candidate.error_description ?? ''}`.toLowerCase()
+  const name = (candidate.name ?? '').toLowerCase()
 
   if (candidate.code === '23505' || text.includes('duplicate key')) {
     return 'That tracking reference is already in use. Choose a different reference.'
@@ -27,8 +28,8 @@ export function getUserMessage(error: unknown): string {
   if (text.includes('invalid login credentials')) {
     return 'The email or password is incorrect. Check your details and try again.'
   }
-  if (text.includes('network') || text.includes('fetch')) {
-    return 'A network error interrupted the request. Check your connection and try again.'
+  if (name.includes('retryablefetch') || name.includes('networkerror') || text.includes('network') || text.includes('fetch') || text.includes('timed out') || text.includes('connection closed')) {
+    return 'CheckTrack could not reach Supabase Auth. Check your connection, VPN, firewall, or browser extensions, then try again.'
   }
   if (text.includes('session') && (text.includes('expired') || text.includes('missing'))) {
     return 'Your session has expired. Sign in again to continue.'
