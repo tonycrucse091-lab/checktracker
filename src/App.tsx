@@ -99,6 +99,13 @@ function RequireWriter() {
   return <RequireRoles roles={['administrator', 'staff']} />
 }
 
+function RoleLandingPage() {
+  const { profile, loading } = useAuth()
+  if (loading) return <PageLoading label="Loading your workspace…" />
+  if (profile?.role === 'administrator') return <Navigate to="/app/admin" replace />
+  return <DashboardPage />
+}
+
 export default function App() {
   return (
     <Suspense fallback={<PageLoading label="Loading CheckTrack…" />}>
@@ -115,7 +122,7 @@ export default function App() {
           <Route path="/mfa" element={<MfaPage />} />
           <Route element={<RequireAdministratorMfa />}>
             <Route path="/app" element={<AppShell />}>
-              <Route index element={<DashboardPage />} />
+              <Route index element={<RoleLandingPage />} />
               <Route path="records" element={<RecordsPage />} />
               <Route path="records/new" element={<RequireWriter />}>
                 <Route index element={<CreateRecordPage />} />
