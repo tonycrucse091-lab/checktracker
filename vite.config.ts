@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    allowedHosts: ['.manus.computer'],
+  },
   build: {
     target: 'es2022',
     sourcemap: false,

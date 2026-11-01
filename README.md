@@ -56,7 +56,15 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
 
 ## Supabase authentication and the first administrator
 
-1. In Supabase Auth settings, keep public sign-up disabled, enable email confirmations, configure an SMTP provider for production email, set the production Site URL, and add only the required local, Preview, and production redirect URLs. Password reset redirects to `/set-password`; invitations also return there.
+1. In Supabase Auth settings, enable email sign-up for the public read-only onboarding flow and keep email confirmations enabled. Set the **Site URL** to the complete URL including the protocol, for example `https://checktracker.vercel.app` (not `checktracker.vercel.app/`, which Supabase treats as a path). Add these **Redirect URLs**:
+
+   ```text
+   http://localhost:3000/**
+   https://3000-ikfwdyftwza3twk787kpq-574c746f.us3.manus.computer/**
+   https://checktracker.vercel.app/**
+   ```
+
+   Configure an SMTP provider for production email and set the production Site URL before inviting real users. Password-reset requests start at `/password-reset` and finish at `/set-password`; email confirmation finishes at `/confirm-email` on the same origin where signup started. You may also add the exact production redirect `https://checktracker.vercel.app/confirm-email` explicitly.
 2. Apply the versioned migrations to the intended Supabase project after checking its project reference and taking the backup required by your organization:
 
    ```bash
@@ -65,7 +73,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
    ```
 
    Confirm that **both** `20261021210000_checktrack_mvp.sql` and `20261021211000_checktrack_security_hardening.sql` are applied before using the app. The second migration enforces Administrator AAL2, hardens case-insensitive references, and locks role changes behind a trusted service function.
-3. In Supabase Auth → Users, invite or create the first trusted administrator account. Have that person verify their email. Public self-registration remains disabled.
+3. In Supabase Auth → Users, invite or create the first trusted administrator account. Have that person verify their email. Public signup only creates read-only accounts; administrator access remains an explicit, trusted profile change.
 4. In the SQL editor for the **correct** project, replace the placeholder email and run this one-time bootstrap. It upgrades only that confirmed user's trigger-created default profile:
 
    ```sql
@@ -96,7 +104,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
 
    This is a trusted database-owner bootstrap; the associated profile audit row can have a null actor. Subsequent app-mediated changes are attributed to the authenticated administrator. Do not leave this placeholder unchanged or expose the SQL editor to ordinary app users.
 5. Sign in as that administrator. CheckTrack requires Supabase TOTP AAL2 before administrator actions are enabled. Enroll an authenticator using `/mfa`; both the app and database enforce the AAL2 requirement.
-6. From **Team access**, invite Staff or Read-only accounts. Administrator access for another user is assigned only by promoting an existing profile. Staff export permission is explicit and off by default.
+6. From **Team access**, invite Staff or Read-only accounts. Administrator access for another user is assigned only by promoting an existing profile. Staff export permission is explicit and off by default. Public signup always creates read-only accounts; the stored profile role, not a signup field, controls the post-login workspace.
 
 ## Supabase Edge Functions
 
@@ -143,7 +151,14 @@ This repository is configured as a static Vite app. `vercel.json` rewrites neste
 
 1. Push/host this code in the intended GitHub repository, then import that repository in Vercel.
 2. Select Vite or configure **Build Command** `npm run build`, **Output Directory** `dist`, and Node.js 22.12+.
-3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to Vercel Production and only the intended Preview environments. These two values are public; do not add any service/secret key.
+3. Add these environment variables to Vercel Production and the intended Preview environments:
+
+   ```dotenv
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
+   ```
+
+   Use the Supabase project root URL, not the `/rest/v1/` URL. These two browser-safe values are public; never add a service-role or secret key to Vercel frontend variables.
 4. Deploy the frontend. In Supabase Auth, set the Site URL to the production origin and add exact redirect patterns for localhost, the stable Preview host you actually use, the Vercel production hostname, and any verified custom domain.
 5. Set `CHECKTRACK_SITE_URL` and `CHECKTRACK_ALLOWED_ORIGINS` as Supabase Edge Function secrets to the production origin(s); redeploy the functions after changing code. Do not allow untrusted origins. Function CORS compares exact origins.
 6. Verify sign-in, password reset, invitation links, MFA, record RLS, status history, CSV permissions, and deep-link refresh on a non-production test account before inviting real users.

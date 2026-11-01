@@ -4,10 +4,10 @@ project_id = "checktrack"
 enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000/**"]
-enable_signup = false
+enable_signup = true
 
 [auth.email]
-enable_signup = false
+enable_signup = true
 enable_confirmations = true
 
 [functions.team-admin]

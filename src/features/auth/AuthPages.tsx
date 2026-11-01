@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, CircleHelp, Copy, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Check, CircleHelp, Copy, KeyRound, LockKeyhole, ShieldCheck, UserRoundPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from './AuthContext'
 import { getUserMessage, logSafeFailure } from '../../lib/errors'
@@ -23,7 +23,7 @@ function AuthBrandPanel() {
           <span><Check aria-hidden="true" /> Traceable status history</span>
         </div>
       </div>
-      <div className="auth-brand-foot">Access is invitation-only. Your organization administrator manages accounts.</div>
+      <div className="auth-brand-foot">Read-only access is self-service. Elevated roles are managed by an administrator.</div>
     </section>
   )
 }
@@ -106,7 +106,115 @@ export function SignInPage() {
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
-      <p className="auth-footnote">Accounts are provisioned by an administrator. Public self-registration is disabled.</p>
+      <p className="auth-footnote">New accounts start as read-only users. <Link className="auth-subtle-link" to="/sign-up">Create an account</Link></p>
+    </AuthLayout>
+  )
+}
+
+export function SignUpPage() {
+  const { signUp, configured, session } = useAuth()
+  const navigate = useNavigate()
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (session) navigate('/app', { replace: true })
+  }, [session, navigate])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    const parsedEmail = emailSchema.safeParse(email)
+    if (!displayName.trim() || displayName.trim().length > 160) {
+      setError('Enter a display name of 1 to 160 characters.')
+      return
+    }
+    if (!parsedEmail.success) {
+      setError(parsedEmail.error.issues[0]?.message ?? 'Enter a valid email address.')
+      return
+    }
+    const parsedPassword = passwordSchema.safeParse(password)
+    if (!parsedPassword.success) {
+      setError(parsedPassword.error.issues[0]?.message ?? 'Choose a stronger password.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const hasSession = await signUp(parsedEmail.data, parsedPassword.data, displayName)
+      if (hasSession) navigate('/app', { replace: true })
+      else setSubmitted(true)
+    } catch (caught) {
+      setError(getUserMessage(caught))
+      logSafeFailure('sign up', caught)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <AuthLayout>
+      <Link className="auth-subtle-link" to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 24, textDecoration: 'none' }}><ArrowLeft size={14} aria-hidden="true" /> Back to start</Link>
+      <p className="eyebrow">Create access</p>
+      <h2>Create your CheckTrack account</h2>
+      <p>Sign up for a read-only workspace account. Administrator access is assigned separately and cannot be selected during signup.</p>
+      {submitted ? (
+        <>
+          <div className="alert" role="status"><Check aria-hidden="true" /><span>Account created. Check your email and open the confirmation link. It will return you to CheckTrack so you can sign in.</span></div>
+          <Link className="button button-primary" to="/sign-in" style={{ marginTop: 16, width: '100%' }}>Continue to sign in</Link>
+        </>
+      ) : (
+        <>
+          {!configured && <div className="alert alert-neutral" role="status">Connect Supabase before creating an account.</div>}
+          {error && <div className="alert alert-error" role="alert">{error}</div>}
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <label className="field">
+              <span className="field-label">Full name</span>
+              <input className="field-input" type="text" autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required disabled={!configured || submitting} />
+            </label>
+            <label className="field">
+              <span className="field-label">Email address</span>
+              <input className="field-input" type="email" autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={!configured || submitting} />
+            </label>
+            <label className="field">
+              <span className="field-label">Password</span>
+              <input className="field-input" type="password" autoComplete="new-password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} required disabled={!configured || submitting} />
+              <span className="field-hint">Use at least 12 characters.</span>
+            </label>
+            <button className="button button-primary" type="submit" disabled={!configured || submitting}><UserRoundPlus aria-hidden="true" />{submitting ? 'Creating account…' : 'Create account'}</button>
+          </form>
+        </>
+      )}
+      <p className="auth-footnote">Already have an account? <Link className="auth-subtle-link" to="/sign-in">Sign in</Link></p>
+    </AuthLayout>
+  )
+}
+
+export function ConfirmEmailPage() {
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const errorCode = query.get('error_code') || query.get('error')
+  const expired = errorCode === 'otp_expired' || errorCode === 'access_denied'
+
+  return (
+    <AuthLayout>
+      <p className="eyebrow">Email confirmation</p>
+      <h2>{expired ? 'This confirmation link has expired' : 'Email confirmation received'}</h2>
+      {expired ? (
+        <>
+          <div className="alert alert-error" role="alert"><CircleHelp aria-hidden="true" /><span>This one-time confirmation link is no longer valid. Request a new confirmation email, then open the newest link.</span></div>
+          <Link className="button button-primary" to="/sign-up" style={{ marginTop: 16, width: '100%' }}>Return to signup</Link>
+        </>
+      ) : (
+        <>
+          <div className="alert" role="status"><Check aria-hidden="true" /><span>Your email address has been confirmed. You can now sign in to CheckTrack.</span></div>
+          <Link className="button button-primary" to="/sign-in" style={{ marginTop: 16, width: '100%' }}>Continue to sign in</Link>
+        </>
+      )}
+      <p className="auth-footnote">If you already have an account, you can return to <Link className="auth-subtle-link" to="/sign-in">sign in</Link>.</p>
     </AuthLayout>
   )
 }

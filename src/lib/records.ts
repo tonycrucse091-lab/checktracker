@@ -118,6 +118,19 @@ export async function fetchCheckRecord(id: string): Promise<CheckRecord> {
   return data as CheckRecord
 }
 
+export async function fetchTrackingRecord(reference: string): Promise<CheckRecord | null> {
+  const trackingReference = reference.trim().slice(0, 64)
+  if (!trackingReference) return null
+  const { data, error } = await requireSupabase()
+    .from('check_records')
+    .select('*')
+    .eq('tracking_reference', trackingReference)
+    .is('archived_at', null)
+    .maybeSingle()
+  ensureSuccess(error)
+  return (data ?? null) as CheckRecord | null
+}
+
 export async function fetchRecordHistory(recordId: string): Promise<CheckStatusHistory[]> {
   const { data, error } = await requireSupabase()
     .from('check_status_history')

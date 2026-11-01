@@ -14,6 +14,7 @@ interface AuthContextValue {
   refreshProfile: (nextSession?: Session | null) => Promise<void>
   refreshAssurance: () => Promise<string | null>
   signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, displayName: string) => Promise<boolean>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
@@ -32,20 +33,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [assuranceLevel, setAssuranceLevel] = useState<string | null>(null)
   const [authNotice, setAuthNotice] = useState<string | null>(null)
 
-  const refreshAssurance = useCallback(async () => {
+  const readAssurance = useCallback(async (activeSession?: Session | null) => {
     const client = supabase
     if (!client) {
-      setAssuranceLevel(null)
       return null
     }
-    const { data, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (error) {
-      setAssuranceLevel(null)
+    try {
+      // Passing the current access token avoids re-entering Supabase's session lock
+      // while a SIGNED_IN callback is still settling after password sign-in.
+      const token = activeSession?.access_token ?? sessionRef.current?.access_token
+      const { data, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel(token)
+      if (error) return null
+      return data.currentLevel
+    } catch {
       return null
     }
-    setAssuranceLevel(data.currentLevel)
-    return data.currentLevel
   }, [])
+
+  const refreshAssurance = useCallback(async () => {
+    const level = await readAssurance(sessionRef.current)
+    setAssuranceLevel(level)
+    return level
+  }, [readAssurance])
 
   const refreshProfile = useCallback(async (nextSession?: Session | null) => {
     const client = supabase
@@ -87,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       profileRef.current = null
       setProfile(null)
+      setAssuranceLevel(null)
       setAuthNotice(getUserMessage(error))
       setLoading(false)
       return
@@ -109,10 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileRef.current = nextProfile
     loadedSessionUserIdRef.current = activeUserId
     setProfile(nextProfile)
-    const { data: assurance, error: assuranceError } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
-    setAssuranceLevel(assuranceError ? null : assurance.currentLevel)
+
+    // Profile readiness is the sign-in gate. Do not make password sign-in wait on
+    // a second auth request; Supabase can emit INITIAL_SESSION/SIGNED_IN together.
     setLoading(false)
-  }, [])
+    void readAssurance(activeSession).then((level) => {
+      if (requestId === profileRequestIdRef.current) setAssuranceLevel(level)
+    })
+  }, [readAssurance])
 
   useEffect(() => {
     const client = supabase
@@ -153,6 +167,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshProfile(data.session)
   }, [refreshProfile])
 
+  const signUp = useCallback(async (email: string, password: string, displayName: string) => {
+    const client = requireSupabase()
+    const { data, error } = await client.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: { display_name: displayName.trim() },
+        emailRedirectTo: `${window.location.origin}/confirm-email`,
+      },
+    })
+    if (error) throw error
+    return Boolean(data.session)
+  }, [])
+
   const signOut = useCallback(async () => {
     const client = requireSupabase()
     const { error } = await client.auth.signOut({ scope: 'local' })
@@ -190,10 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile,
     refreshAssurance,
     signIn,
+    signUp,
     signOut,
     requestPasswordReset,
     updatePassword,
-  }), [session, profile, loading, assuranceLevel, authNotice, refreshProfile, refreshAssurance, signIn, signOut, requestPasswordReset, updatePassword])
+  }), [session, profile, loading, assuranceLevel, authNotice, refreshProfile, refreshAssurance, signIn, signUp, signOut, requestPasswordReset, updatePassword])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
