@@ -7,6 +7,7 @@ import type { UserRole } from './lib/types'
 
 const SignInPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SignInPage })))
 const SignUpPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SignUpPage })))
+const ConfirmEmailPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.ConfirmEmailPage })))
 const PasswordResetPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.PasswordResetPage })))
 const SetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.SetPasswordPage })))
 const MfaPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.MfaPage })))
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="/" element={<IndexPage />} />
         <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/sign-up" element={<SignUpPage />} />
+        <Route path="/confirm-email" element={<ConfirmEmailPage />} />
         <Route path="/password-reset" element={<PasswordResetPage />} />
         <Route path="/set-password" element={<SetPasswordPage />} />
         <Route path="/access-denied" element={<AccessDeniedPage />} />

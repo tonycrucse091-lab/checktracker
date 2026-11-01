@@ -174,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { display_name: displayName.trim() },
-        emailRedirectTo: `${window.location.origin}/sign-in`,
+        emailRedirectTo: `${window.location.origin}/confirm-email`,
       },
     })
     if (error) throw error

@@ -163,7 +163,7 @@ export function SignUpPage() {
       <p>Sign up for a read-only workspace account. Administrator access is assigned separately and cannot be selected during signup.</p>
       {submitted ? (
         <>
-          <div className="alert" role="status"><Check aria-hidden="true" /><span>Account created. Check your email to confirm the account, then sign in.</span></div>
+          <div className="alert" role="status"><Check aria-hidden="true" /><span>Account created. Check your email and open the confirmation link. It will return you to CheckTrack so you can sign in.</span></div>
           <Link className="button button-primary" to="/sign-in" style={{ marginTop: 16, width: '100%' }}>Continue to sign in</Link>
         </>
       ) : (
@@ -189,6 +189,32 @@ export function SignUpPage() {
         </>
       )}
       <p className="auth-footnote">Already have an account? <Link className="auth-subtle-link" to="/sign-in">Sign in</Link></p>
+    </AuthLayout>
+  )
+}
+
+export function ConfirmEmailPage() {
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const errorCode = query.get('error_code') || query.get('error')
+  const expired = errorCode === 'otp_expired' || errorCode === 'access_denied'
+
+  return (
+    <AuthLayout>
+      <p className="eyebrow">Email confirmation</p>
+      <h2>{expired ? 'This confirmation link has expired' : 'Email confirmation received'}</h2>
+      {expired ? (
+        <>
+          <div className="alert alert-error" role="alert"><CircleHelp aria-hidden="true" /><span>This one-time confirmation link is no longer valid. Request a new confirmation email, then open the newest link.</span></div>
+          <Link className="button button-primary" to="/sign-up" style={{ marginTop: 16, width: '100%' }}>Return to signup</Link>
+        </>
+      ) : (
+        <>
+          <div className="alert" role="status"><Check aria-hidden="true" /><span>Your email address has been confirmed. You can now sign in to CheckTrack.</span></div>
+          <Link className="button button-primary" to="/sign-in" style={{ marginTop: 16, width: '100%' }}>Continue to sign in</Link>
+        </>
+      )}
+      <p className="auth-footnote">If you already have an account, you can return to <Link className="auth-subtle-link" to="/sign-in">sign in</Link>.</p>
     </AuthLayout>
   )
 }

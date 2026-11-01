@@ -64,7 +64,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
    https://checktracker.vercel.app/**
    ```
 
-   Configure an SMTP provider for production email and set the production Site URL before inviting real users. Password reset redirects to `/set-password`; email confirmation redirects to `/sign-in` on the same origin where signup started.
+   Configure an SMTP provider for production email and set the production Site URL before inviting real users. Password-reset requests start at `/password-reset` and finish at `/set-password`; email confirmation finishes at `/confirm-email` on the same origin where signup started. You may also add the exact production redirect `https://checktracker.vercel.app/confirm-email` explicitly.
 2. Apply the versioned migrations to the intended Supabase project after checking its project reference and taking the backup required by your organization:
 
    ```bash
@@ -73,7 +73,7 @@ The pgTAP suite uses synthetic `.test` accounts and rolls back its fixtures. **D
    ```
 
    Confirm that **both** `20261021210000_checktrack_mvp.sql` and `20261021211000_checktrack_security_hardening.sql` are applied before using the app. The second migration enforces Administrator AAL2, hardens case-insensitive references, and locks role changes behind a trusted service function.
-3. In Supabase Auth → Users, invite or create the first trusted administrator account. Have that person verify their email. Public self-registration remains disabled.
+3. In Supabase Auth → Users, invite or create the first trusted administrator account. Have that person verify their email. Public signup only creates read-only accounts; administrator access remains an explicit, trusted profile change.
 4. In the SQL editor for the **correct** project, replace the placeholder email and run this one-time bootstrap. It upgrades only that confirmed user's trigger-created default profile:
 
    ```sql
