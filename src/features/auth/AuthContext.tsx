@@ -172,7 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await client.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
-      options: { data: { display_name: displayName.trim() } },
+      options: {
+        data: { display_name: displayName.trim() },
+        emailRedirectTo: `${window.location.origin}/sign-in`,
+      },
     })
     if (error) throw error
     return Boolean(data.session)
