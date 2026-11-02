@@ -194,10 +194,16 @@ export function SignUpPage() {
 }
 
 export function ConfirmEmailPage() {
+  const { session, loading, authNotice } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const query = new URLSearchParams(location.search)
   const errorCode = query.get('error_code') || query.get('error')
   const expired = errorCode === 'otp_expired' || errorCode === 'access_denied'
+
+  useEffect(() => {
+    if (!loading && session && !expired) navigate('/app', { replace: true })
+  }, [expired, loading, navigate, session])
 
   return (
     <AuthLayout>
@@ -210,7 +216,8 @@ export function ConfirmEmailPage() {
         </>
       ) : (
         <>
-          <div className="alert" role="status"><Check aria-hidden="true" /><span>Your email address has been confirmed. You can now sign in to CheckTrack.</span></div>
+          <div className="alert" role="status"><Check aria-hidden="true" /><span>{loading ? 'Your email address was confirmed. Restoring your secure session…' : session ? 'Your email address was confirmed. Opening your CheckTrack workspace…' : 'Your email address has been confirmed. You can now sign in to CheckTrack.'}</span></div>
+          {authNotice && <div className="alert alert-error" role="alert" style={{ marginTop: 12 }}>{authNotice}</div>}
           <Link className="button button-primary" to="/sign-in" style={{ marginTop: 16, width: '100%' }}>Continue to sign in</Link>
         </>
       )}

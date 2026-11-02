@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { display_name: displayName.trim() },
-        emailRedirectTo: `${window.location.origin}/confirm-email`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fapp`,
       },
     })
     if (error) throw error
